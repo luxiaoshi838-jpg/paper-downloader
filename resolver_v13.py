@@ -3,21 +3,28 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 import app as legacy
-from robust_resolver import RobustOpenAccessResolver, _candidate_priority
+from robust_resolver import ResolutionContext, _candidate_priority
 from resolver_v12 import EnhancedOpenAccessResolver
 
 MAX_CANDIDATES_PER_DOI = 10
 MAX_SECONDS_PER_DOI = 95
+BIOMEDICAL_PREFIXES = (
+    "10.1001/",
+    "10.1056/",
+    "10.1101/",
+    "10.1186/",
+    "10.1371/",
+)
 
 
 class ResponsiveOpenAccessResolver(EnhancedOpenAccessResolver):
-    """保留开放获取多源检索，同时限制重试次数和单篇处理耗时。"""
+    """保留开放获取多源检索，同时限制查询层级、重试和单篇耗时。"""
 
     def __init__(self, email: str, timeout: int = 15, session=None) -> None:
         super().__init__(email=email, timeout=min(timeout, 18), session=session)
@@ -36,27 +43,65 @@ class ResponsiveOpenAccessResolver(EnhancedOpenAccessResolver):
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
-    def resolve(self, doi: str):
-        # v1.2 曾为获取预印本标识重复查询 Semantic Scholar；直接调用
-        # v1.1 基础解析可避免批处理中最常见的重复限流请求。
-        context = RobustOpenAccessResolver.resolve(self, doi)
+    @staticmethod
+    def _has_verified_direct(context: ResolutionContext) -> bool:
+        return any(item.oa_verified and item.direct_hint for item in context.candidates)
+
+    def resolve(self, doi: str) -> ResolutionContext:
+        """分层检索，避免每篇 DOI 无条件请求全部平台。"""
+        context = ResolutionContext(doi=doi)
+
+        # 第一层：开放获取判断覆盖率最高的两个来源。
+        self._resolve_unpaywall(context)
+        self._resolve_openalex(context)
+        direct = self._has_verified_direct(context)
+
+        # 第二层：没有直链时再检查 Semantic Scholar 的仓储副本。
+        if not direct:
+            self._resolve_semantic_scholar(context)
+            direct = self._has_verified_direct(context)
+
+        # 两个主来源和 Semantic Scholar 均判定非开放时停止扩展检索。
+        # 这类文献继续请求 DOAJ、CORE、Europe PMC 与出版社页面既不会
+        # 合法取得全文，又是旧版每篇耗时约 100 秒的主要原因。
+        if not direct and context.is_oa is not False:
+            if doi.lower().startswith(BIOMEDICAL_PREFIXES):
+                self._resolve_europe_pmc(context)
+                direct = self._has_verified_direct(context)
+
+            if not direct:
+                self._resolve_doaj(context)
+                direct = self._has_verified_direct(context)
+
+            if self.core_api_key or (context.is_oa is True and not direct):
+                self._resolve_core(context)
+                direct = self._has_verified_direct(context)
+
+        # Crossref 主要用于开放许可、题名、出版社落地页和路径补全。
+        # 已有经过验证的直链且 OpenAlex 给出了题名时无需再请求。
+        if context.is_oa is not False and (not direct or not context.title):
+            self._resolve_crossref(context)
+
         self._expected_title = context.title
 
-        has_verified_direct = any(
-            item.oa_verified and item.direct_hint for item in context.candidates
-        )
-        if self.core_api_key or (context.is_oa is True and not has_verified_direct):
-            self._resolve_core(context)
-
-        if context.doi.startswith("10.1101/"):
+        if doi.startswith("10.1101/"):
             context.add_candidate(
-                f"https://www.biorxiv.org/content/{context.doi}.full.pdf",
+                f"https://www.biorxiv.org/content/{doi}.full.pdf",
                 "bioRxiv/medRxiv",
-                landing_url=f"https://doi.org/{context.doi}",
+                landing_url=f"https://doi.org/{doi}",
                 oa_verified=True,
                 direct_hint=True,
             )
             context.is_oa = True
+
+        if context.is_oa is not False:
+            context.add_candidate(
+                f"https://doi.org/{quote(doi, safe='/():;._-')}",
+                "DOI 页面",
+                oa_verified=bool(context.is_oa),
+            )
+            self._add_publisher_routes(context)
+            self._add_context_specific_routes(context)
 
         self._resolve_elsevier_api(context)
         context.candidates.sort(key=_candidate_priority)
