@@ -5,7 +5,12 @@ analysis = Analysis(
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=["robust_resolver"],
+    hiddenimports=[
+        "robust_resolver",
+        "resolver_v12",
+        "enhanced_app",
+        "pypdf",
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
