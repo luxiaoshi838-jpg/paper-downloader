@@ -7,7 +7,9 @@ on:
     paths:
       - "app.py"
       - "launcher.py"
+      - "enhanced_app.py"
       - "robust_resolver.py"
+      - "resolver_v12.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -17,7 +19,9 @@ on:
     paths:
       - "app.py"
       - "launcher.py"
+      - "enhanced_app.py"
       - "robust_resolver.py"
+      - "resolver_v12.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -57,10 +61,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Churchill-v1.1-diagnostics
+          name: Churchill-v1.2-diagnostics
           path: |
             test_output.log
-            churchill_v11_report.json
+            churchill_v12_report.json
           if-no-files-found: warn
 
       - name: Build EXE
