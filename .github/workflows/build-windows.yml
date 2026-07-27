@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "app.py"
+      - "launcher.py"
+      - "robust_resolver.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -14,6 +16,8 @@ on:
     branches: [main]
     paths:
       - "app.py"
+      - "launcher.py"
+      - "robust_resolver.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
