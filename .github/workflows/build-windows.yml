@@ -48,14 +48,19 @@ jobs:
           pip install -r requirements.txt pyinstaller
 
       - name: Run parser tests
-        run: python -m unittest discover -s tests -v
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath test_output.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload Churchill diagnostic report
+      - name: Upload diagnostic files
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Churchill-v1.1-诊断报告
-          path: churchill_v11_report.json
+          name: Churchill-v1.1-diagnostics
+          path: |
+            test_output.log
+            churchill_v11_report.json
           if-no-files-found: warn
 
       - name: Build EXE
