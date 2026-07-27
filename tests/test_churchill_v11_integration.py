@@ -45,51 +45,56 @@ DOIS = [
 class ChurchillV11Integration(unittest.TestCase):
     def test_real_downloads(self):
         cancel = threading.Event()
+        rows = []
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp)
             records = [app.ReferenceRecord(str(i), doi, doi) for i, doi in enumerate(DOIS, 1)]
-            results = []
             with ThreadPoolExecutor(max_workers=4) as pool:
                 futures = {
                     pool.submit(RobustOpenAccessResolver("").download, record, output, cancel): record
                     for record in records
                 }
                 for future in as_completed(futures):
-                    result = future.result()
-                    results.append(result)
-                    print(
-                        "V11_RESULT "
-                        + json.dumps(
-                            {
-                                "n": result.number,
-                                "doi": result.doi,
-                                "status": result.status,
-                                "source": result.source,
-                                "url": result.url,
-                                "message": result.message,
-                                "seconds": result.elapsed_seconds,
-                            },
-                            ensure_ascii=False,
-                        ),
-                        flush=True,
-                    )
-            results.sort(key=lambda x: int(x.number))
-            success = sum(item.status == "下载成功" for item in results)
-            print(
-                "V11_SUMMARY "
-                + json.dumps(
-                    {
-                        "total": len(results),
-                        "success": success,
-                        "failed": len(results) - success,
-                        "pdf_files": len(list(output.glob("*.pdf"))),
-                    },
-                    ensure_ascii=False,
-                ),
-                flush=True,
+                    record = futures[future]
+                    try:
+                        result = future.result()
+                        row = {
+                            "n": int(result.number),
+                            "doi": result.doi,
+                            "status": result.status,
+                            "source": result.source,
+                            "url": result.url,
+                            "message": result.message,
+                            "seconds": result.elapsed_seconds,
+                        }
+                    except Exception as exc:
+                        row = {
+                            "n": int(record.number),
+                            "doi": record.doi,
+                            "status": "程序异常",
+                            "source": "",
+                            "url": "",
+                            "message": f"{type(exc).__name__}: {exc}",
+                            "seconds": 0,
+                        }
+                    rows.append(row)
+                    print("V11_RESULT " + json.dumps(row, ensure_ascii=False), flush=True)
+
+            rows.sort(key=lambda item: item["n"])
+            success = sum(item["status"] == "下载成功" for item in rows)
+            summary = {
+                "total": len(rows),
+                "success": success,
+                "failed": sum(item["status"] == "下载失败" for item in rows),
+                "exceptions": sum(item["status"] == "程序异常" for item in rows),
+                "pdf_files": len(list(output.glob("*.pdf"))),
+            }
+            report = {"summary": summary, "results": rows}
+            Path("churchill_v11_report.json").write_text(
+                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-            self.assertEqual(len(results), 28)
-            self.assertEqual(success, len(list(output.glob("*.pdf"))))
+            print("V11_SUMMARY " + json.dumps(summary, ensure_ascii=False), flush=True)
+            self.assertEqual(len(rows), 28)
 
 
 if __name__ == "__main__":
