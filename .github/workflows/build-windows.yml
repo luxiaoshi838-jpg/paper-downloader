@@ -50,6 +50,14 @@ jobs:
       - name: Run parser tests
         run: python -m unittest discover -s tests -v
 
+      - name: Upload Churchill diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Churchill-v1.1-诊断报告
+          path: churchill_v11_report.json
+          if-no-files-found: warn
+
       - name: Build EXE
         run: pyinstaller --noconfirm --clean paper_downloader.spec
 
