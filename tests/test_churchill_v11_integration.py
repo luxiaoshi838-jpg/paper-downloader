@@ -78,7 +78,7 @@ class ChurchillV11Integration(unittest.TestCase):
                             "seconds": 0,
                         }
                     rows.append(row)
-                    print("V11_RESULT " + json.dumps(row, ensure_ascii=False), flush=True)
+                    print("V11_RESULT " + json.dumps(row, ensure_ascii=True), flush=True)
 
             rows.sort(key=lambda item: item["n"])
             success = sum(item["status"] == "下载成功" for item in rows)
@@ -93,7 +93,7 @@ class ChurchillV11Integration(unittest.TestCase):
             Path("churchill_v11_report.json").write_text(
                 json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-            print("V11_SUMMARY " + json.dumps(summary, ensure_ascii=False), flush=True)
+            print("V11_SUMMARY " + json.dumps(summary, ensure_ascii=True), flush=True)
             self.assertEqual(len(rows), 28)
 
 
