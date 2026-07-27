@@ -1,3 +1,4 @@
+import json
 import unittest
 import requests
 
@@ -39,6 +40,7 @@ class ChurchillOnlineDiagnostics(unittest.TestCase):
         session.headers.update({
             "User-Agent": "paper-downloader-diagnostic/1.0 (https://github.com/luxiaoshi838-jpg/paper-downloader)"
         })
+        rows = []
         print("DIAG_BEGIN", flush=True)
         for index, doi in enumerate(DOIS, 1):
             row = {"n": index, "doi": doi}
@@ -55,10 +57,12 @@ class ChurchillOnlineDiagnostics(unittest.TestCase):
                     best = j.get("best_oa_location") or {}
                     row["up_pdf"] = bool(best.get("url_for_pdf"))
                     row["up_host"] = best.get("host_type") or ""
+                    row["up_pdf_url"] = best.get("url_for_pdf") or ""
+                    row["up_landing_url"] = best.get("url") or ""
                 else:
-                    row["up_error"] = r.text[:120].replace("\n", " ")
+                    row["up_error"] = r.text[:240].replace("\n", " ")
             except Exception as exc:
-                row["up_error"] = type(exc).__name__ + ":" + str(exc)[:100]
+                row["up_error"] = type(exc).__name__ + ":" + str(exc)[:200]
 
             try:
                 r = session.get(
@@ -72,10 +76,12 @@ class ChurchillOnlineDiagnostics(unittest.TestCase):
                     row["oa_is_oa"] = bool((j.get("open_access") or {}).get("is_oa"))
                     best = j.get("best_oa_location") or {}
                     row["oa_pdf"] = bool(best.get("pdf_url"))
+                    row["oa_pdf_url"] = best.get("pdf_url") or ""
+                    row["oa_landing_url"] = best.get("landing_page_url") or ""
                 else:
-                    row["oa_error"] = r.text[:120].replace("\n", " ")
+                    row["oa_error"] = r.text[:240].replace("\n", " ")
             except Exception as exc:
-                row["oa_error"] = type(exc).__name__ + ":" + str(exc)[:100]
+                row["oa_error"] = type(exc).__name__ + ":" + str(exc)[:200]
 
             try:
                 r = session.get(
@@ -89,12 +95,17 @@ class ChurchillOnlineDiagnostics(unittest.TestCase):
                     row["cr_pdf"] = sum(
                         "pdf" in str(x.get("content-type", "")).lower() for x in links
                     )
+                    row["cr_urls"] = [x.get("URL") for x in links if x.get("URL")]
                 else:
-                    row["cr_error"] = r.text[:120].replace("\n", " ")
+                    row["cr_error"] = r.text[:240].replace("\n", " ")
             except Exception as exc:
-                row["cr_error"] = type(exc).__name__ + ":" + str(exc)[:100]
+                row["cr_error"] = type(exc).__name__ + ":" + str(exc)[:200]
 
+            rows.append(row)
             print("DIAG", row, flush=True)
+
+        with open("diagnostics.json", "w", encoding="utf-8") as handle:
+            json.dump(rows, handle, ensure_ascii=False, indent=2)
         print("DIAG_END", flush=True)
         self.assertEqual(len(DOIS), 28)
 
