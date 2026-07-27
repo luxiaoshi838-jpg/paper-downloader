@@ -9,6 +9,7 @@ analysis = Analysis(
         "robust_resolver",
         "resolver_v12",
         "resolver_v13",
+        "resolver_v14",
         "enhanced_app",
         "pypdf",
     ],
