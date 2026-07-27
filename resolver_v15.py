@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 import app as legacy
-from browser_publisher_engine import EdgePublisherEngine
+from browser_worker import SharedEdgePublisherWorker
 from resolver_v13 import ResponsiveOpenAccessResolver
 from resolver_v14 import CampusNetworkResolver
 
@@ -77,9 +77,9 @@ class BrowserPublisherResolver(CampusNetworkResolver):
                 elapsed_seconds=round(time.monotonic() - started, 2),
             )
 
-        # Mature browser path: JavaScript-render the publisher page in the
-        # installed Edge/Chrome and use official PDF controls/routes.
-        browser_result = EdgePublisherEngine.shared().download(
+        # All Playwright work is submitted to one dedicated owner thread. A lock
+        # alone is insufficient because sync Playwright objects are thread-bound.
+        browser_result = SharedEdgePublisherWorker.shared().download(
             record.doi,
             target,
             cancel_event,
