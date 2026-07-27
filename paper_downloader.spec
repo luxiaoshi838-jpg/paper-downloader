@@ -8,6 +8,7 @@ analysis = Analysis(
     hiddenimports=[
         "robust_resolver",
         "resolver_v12",
+        "resolver_v13",
         "enhanced_app",
         "pypdf",
     ],
