@@ -1,0 +1,5 @@
+1. Example, A. A. (2020). Example article one. Example Journal, 12(3), 1-10.
+https://doi.org/10.1371/journal.pone.0241535
+
+2. Example, B. B. (2021). Example article two. Example Journal, 13(1), 20-30.
+doi: 10.1038/s41598-021-83350-2
