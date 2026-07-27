@@ -10,6 +10,14 @@ on:
       - "paper_downloader.spec"
       - "tests/**"
       - ".github/workflows/build-windows.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "requirements.txt"
+      - "paper_downloader.spec"
+      - "tests/**"
+      - ".github/workflows/build-windows.yml"
   release:
     types: [published]
 
