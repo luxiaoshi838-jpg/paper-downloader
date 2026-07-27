@@ -14,6 +14,9 @@ class ResolverV12Tests(unittest.TestCase):
         writer.add_metadata({"/Title": title})
         with path.open("wb") as handle:
             writer.write(handle)
+            # Keep the fixture above the production 1 KB safety threshold.
+            # Trailing comments/whitespace after %%EOF are valid for this test PDF.
+            handle.write(b"\n% test fixture padding\n" + b" " * 2048)
 
     def test_core_pdf_url_filter(self):
         self.assertTrue(_is_plausible_core_pdf("https://repo.example.edu/bitstream/123/paper.pdf"))
