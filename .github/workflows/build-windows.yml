@@ -53,7 +53,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DOI文献批量下载器-Windows
-          path: dist/DOI文献批量下载器.exe
+          path: |
+            dist/DOI文献批量下载器.exe
+            diagnostics.json
           if-no-files-found: error
 
       - name: Attach EXE to release
