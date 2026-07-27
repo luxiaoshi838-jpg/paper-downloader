@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import app
-from robust_resolver import RobustOpenAccessResolver
+from resolver_v12 import EnhancedOpenAccessResolver
 
 DOIS = [
     "10.1016/j.margeo.2020.106154",
@@ -42,7 +42,7 @@ DOIS = [
 ]
 
 
-class ChurchillV11Integration(unittest.TestCase):
+class ChurchillV12Integration(unittest.TestCase):
     def test_real_downloads(self):
         cancel = threading.Event()
         rows = []
@@ -51,7 +51,7 @@ class ChurchillV11Integration(unittest.TestCase):
             records = [app.ReferenceRecord(str(i), doi, doi) for i, doi in enumerate(DOIS, 1)]
             with ThreadPoolExecutor(max_workers=4) as pool:
                 futures = {
-                    pool.submit(RobustOpenAccessResolver("").download, record, output, cancel): record
+                    pool.submit(EnhancedOpenAccessResolver("").download, record, output, cancel): record
                     for record in records
                 }
                 for future in as_completed(futures):
@@ -78,7 +78,7 @@ class ChurchillV11Integration(unittest.TestCase):
                             "seconds": 0,
                         }
                     rows.append(row)
-                    print("V11_RESULT " + json.dumps(row, ensure_ascii=True), flush=True)
+                    print("V12_RESULT " + json.dumps(row, ensure_ascii=True), flush=True)
 
             rows.sort(key=lambda item: item["n"])
             success = sum(item["status"] == "下载成功" for item in rows)
@@ -90,10 +90,10 @@ class ChurchillV11Integration(unittest.TestCase):
                 "pdf_files": len(list(output.glob("*.pdf"))),
             }
             report = {"summary": summary, "results": rows}
-            Path("churchill_v11_report.json").write_text(
+            Path("churchill_v12_report.json").write_text(
                 json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-            print("V11_SUMMARY " + json.dumps(summary, ensure_ascii=True), flush=True)
+            print("V12_SUMMARY " + json.dumps(summary, ensure_ascii=True), flush=True)
             self.assertEqual(len(rows), 28)
 
 
