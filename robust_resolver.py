@@ -18,6 +18,8 @@ import app as legacy
 DEFAULT_CONTACT_EMAIL = "luxiaoshi838-jpg@users.noreply.github.com"
 MAX_HTML_BYTES = 4_000_000
 PDF_MAGIC = b"%PDF-"
+MAX_PDF_DOWNLOAD_SECONDS = 90
+MAX_PDF_BYTES = 250 * 1024 * 1024
 
 API_INTERVALS = {
     "api.unpaywall.org": 0.25,
@@ -172,6 +174,7 @@ class RobustOpenAccessResolver:
         self.email = email.strip() or DEFAULT_CONTACT_EMAIL
         self.timeout = timeout
         self.session = session or requests.Session()
+        self.session.trust_env = False
         self.session.headers.update(BROWSER_HEADERS)
         self.session.headers["From"] = self.email
         retry = Retry(
@@ -638,6 +641,11 @@ class RobustOpenAccessResolver:
         visited: set[str],
         depth: int,
     ) -> tuple[bool, str, str]:
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            return False, candidate.url, f"文件写入错误：无法创建下载目录：{exc}"
+
         if depth > 4:
             return False, candidate.url, "网页内 PDF 跳转层级过深"
         canonical = _canonical_url(candidate.url)
@@ -682,11 +690,24 @@ class RobustOpenAccessResolver:
                         return False, response.url, "服务器将 HTML 错误页标记成 PDF"
                 temp = target.with_suffix(target.suffix + ".part")
                 try:
+                    expected_length = _content_length(response)
+                    started = time.monotonic()
+                    written = 0
                     with temp.open("wb") as handle:
                         handle.write(first_chunk)
+                        written += len(first_chunk)
                         for chunk in iterator:
                             if chunk:
                                 handle.write(chunk)
+                                written += len(chunk)
+                                if expected_length and written >= expected_length:
+                                    break
+                                if written > MAX_PDF_BYTES:
+                                    temp.unlink(missing_ok=True)
+                                    return False, response.url, "PDF 文件超过安全大小上限，已停止下载"
+                                if time.monotonic() - started > MAX_PDF_DOWNLOAD_SECONDS:
+                                    temp.unlink(missing_ok=True)
+                                    return False, response.url, "PDF 下载超过 90 秒未完成，已停止本条候选"
                     if temp.stat().st_size < 1024:
                         temp.unlink(missing_ok=True)
                         return False, response.url, "PDF 文件过小，已拒绝保存"
@@ -857,6 +878,13 @@ def _canonical_url(url: str) -> str:
 
 def _is_pdf_bytes(data: bytes) -> bool:
     return PDF_MAGIC in data[:2048]
+
+
+def _content_length(response: requests.Response) -> int:
+    try:
+        return max(0, int(response.headers.get("Content-Length") or "0"))
+    except ValueError:
+        return 0
 
 
 def _looks_direct_pdf(url: str) -> bool:

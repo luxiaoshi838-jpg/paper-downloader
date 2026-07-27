@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import tempfile
 import threading
 import unittest
 from pathlib import Path
 
 import app
 from resolver_v14 import CampusNetworkResolver
+from tests.temp_utils import ProjectTempDir
 
 
 class _CampusSuccessResolver(CampusNetworkResolver):
@@ -28,7 +28,7 @@ class CampusNetworkResolverTests(unittest.TestCase):
     def test_campus_success_precedes_open_access_fallback(self):
         resolver = _CampusSuccessResolver("")
         record = app.ReferenceRecord("1", "10.1000/example", "test reference")
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             result = resolver.download(record, Path(tmp), threading.Event())
             self.assertEqual(result.status, "下载成功")
             self.assertEqual(result.source, "校园网授权访问")

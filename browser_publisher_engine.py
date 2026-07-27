@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import os
 import threading
 import time
@@ -16,6 +17,14 @@ from resolver_v12 import validate_downloaded_pdf
 BROWSER_TIMEOUT_MS = 35_000
 REQUEST_TIMEOUT_MS = 22_000
 MAX_BROWSER_CANDIDATES = 28
+PROXY_ENV_NAMES = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+)
 
 
 @dataclass
@@ -24,6 +33,35 @@ class BrowserEngineResult:
     final_url: str = ""
     message: str = ""
     source: str = "Edge 浏览器出版社解析"
+
+
+def _is_dead_local_proxy(value: str) -> bool:
+    lowered = value.lower()
+    return "127.0.0.1:9" in lowered or "localhost:9" in lowered
+
+
+def _browser_env_without_dead_proxies() -> dict[str, str]:
+    env = dict(os.environ)
+    for name in PROXY_ENV_NAMES:
+        if _is_dead_local_proxy(env.get(name, "")):
+            env.pop(name, None)
+    return env
+
+
+@contextlib.contextmanager
+def _temporarily_clear_dead_proxy_env():
+    saved = {name: os.environ.get(name) for name in PROXY_ENV_NAMES}
+    try:
+        for name, value in saved.items():
+            if value and _is_dead_local_proxy(value):
+                os.environ.pop(name, None)
+        yield
+    finally:
+        for name, value in saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 class EdgePublisherEngine:
@@ -66,7 +104,8 @@ class EdgePublisherEngine:
             return False
 
         try:
-            self._playwright = sync_playwright().start()
+            with _temporarily_clear_dead_proxy_env():
+                self._playwright = sync_playwright().start()
             chromium = self._playwright.chromium
             last_error = ""
             for channel in ("msedge", "chrome"):
@@ -75,6 +114,7 @@ class EdgePublisherEngine:
                         channel=channel,
                         headless=True,
                         args=["--disable-extensions", "--no-first-run"],
+                        env=_browser_env_without_dead_proxies(),
                     )
                     self._browser_name = channel
                     break
@@ -97,6 +137,7 @@ class EdgePublisherEngine:
                             executable_path=executable,
                             headless=True,
                             args=["--disable-extensions", "--no-first-run"],
+                            env=_browser_env_without_dead_proxies(),
                         )
                         self._browser_name = Path(executable).name
                         break

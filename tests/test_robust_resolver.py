@@ -1,9 +1,9 @@
-import tempfile
 import threading
 import unittest
 from pathlib import Path
 
 import app
+from tests.temp_utils import ProjectTempDir
 from robust_resolver import (
     DEFAULT_CONTACT_EMAIL,
     ResolutionContext,
@@ -95,7 +95,7 @@ class ResolverTests(unittest.TestCase):
             )
         ])
         resolver = RobustOpenAccessResolver("", session=session)
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             target = Path(tmp) / "x.pdf"
             ok, _, message = resolver._download_candidate(
                 ResolvedCandidate("https://repo.example/paper", "test", oa_verified=True),
@@ -112,7 +112,7 @@ class ResolverTests(unittest.TestCase):
         resolver = RobustOpenAccessResolver("", session=FakeSession())
         resolver.resolve = lambda doi: ResolutionContext(doi=doi, is_oa=False)
         record = app.ReferenceRecord("1", "10.1000/closed", "ref")
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             result = resolver.download(record, Path(tmp), threading.Event())
         self.assertEqual(result.status, "下载失败")
         self.assertIn("非开放获取", result.message)
@@ -135,7 +135,7 @@ class ResolverTests(unittest.TestCase):
             ),
         ])
         resolver = RobustOpenAccessResolver("", session=session)
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             target = Path(tmp) / "p.pdf"
             ok, _, _ = resolver._download_candidate(
                 ResolvedCandidate(

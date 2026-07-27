@@ -4,7 +4,7 @@ import app
 from enhanced_app import EnhancedPaperDownloaderApp
 from resolver_v15 import BrowserPublisherResolver
 
-APP_VERSION = "1.4.1"
+APP_VERSION = "1.5.0"
 
 
 def main() -> None:

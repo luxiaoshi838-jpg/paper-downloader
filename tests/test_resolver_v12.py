@@ -1,10 +1,10 @@
-import tempfile
 import unittest
 from pathlib import Path
 
 from pypdf import PdfWriter
 
 from resolver_v12 import _is_plausible_core_pdf, validate_downloaded_pdf
+from tests.temp_utils import ProjectTempDir
 
 
 class ResolverV12Tests(unittest.TestCase):
@@ -25,7 +25,7 @@ class ResolverV12Tests(unittest.TestCase):
         self.assertFalse(_is_plausible_core_pdf("https://repo.example.edu/item/123"))
 
     def test_wrong_doaj_flyer_is_rejected(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             path = Path(tmp) / "flyer.pdf"
             self._make_pdf(path, "Journal information and subscription flyer")
             ok, reason = validate_downloaded_pdf(
@@ -40,7 +40,7 @@ class ResolverV12Tests(unittest.TestCase):
 
     def test_doaj_pdf_with_matching_title_is_accepted(self):
         title = "Chemical characteristics and acid sensitivity of boreal headwater lakes in northwest Saskatchewan"
-        with tempfile.TemporaryDirectory() as tmp:
+        with ProjectTempDir() as tmp:
             path = Path(tmp) / "paper.pdf"
             self._make_pdf(path, title)
             ok, reason = validate_downloaded_pdf(

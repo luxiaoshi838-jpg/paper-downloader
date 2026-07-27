@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import tempfile
 import threading
 import time
 import unittest
@@ -9,6 +8,7 @@ from pathlib import Path
 
 from browser_publisher_engine import BrowserEngineResult
 from browser_worker import DedicatedBrowserWorker
+from tests.temp_utils import ProjectTempDir
 
 
 class _FakeThreadBoundEngine:
@@ -48,7 +48,7 @@ class DedicatedBrowserWorkerTests(unittest.TestCase):
 
         worker = DedicatedBrowserWorker(engine_factory=factory)
         cancel = threading.Event()
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with ProjectTempDir() as temp_dir:
             base = Path(temp_dir)
             with ThreadPoolExecutor(max_workers=4) as executor:
                 futures = [

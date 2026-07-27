@@ -170,6 +170,7 @@ class OpenAccessResolver:
         self.email = email.strip()
         self.timeout = timeout
         self.session = requests.Session()
+        self.session.trust_env = False
         self.session.headers.update(
             {
                 "User-Agent": USER_AGENT,

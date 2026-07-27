@@ -14,7 +14,7 @@ if errorlevel 1 goto :error
 py -m pip install -r requirements.txt pyinstaller
 if errorlevel 1 goto :error
 
-py -m PyInstaller --noconfirm --clean --onefile --windowed --name "DOI文献批量下载器" app.py
+py -m PyInstaller --noconfirm --clean paper_downloader.spec
 if errorlevel 1 goto :error
 
 echo.
