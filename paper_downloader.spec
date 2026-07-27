@@ -17,6 +17,7 @@ analysis = Analysis(
         "resolver_v15",
         "publisher_adapters",
         "browser_publisher_engine",
+        "browser_worker",
         "enhanced_app",
         "pypdf",
     ] + playwright_hiddenimports,
