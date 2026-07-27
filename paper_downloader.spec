@@ -1,11 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 analysis = Analysis(
-    ["app.py"],
+    ["launcher.py"],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=[
+        "robust_resolver",
+        "resolver_v12",
+        "enhanced_app",
+        "pypdf",
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

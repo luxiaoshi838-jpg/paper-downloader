@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - "app.py"
+      - "launcher.py"
+      - "enhanced_app.py"
+      - "robust_resolver.py"
+      - "resolver_v12.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -14,6 +18,10 @@ on:
     branches: [main]
     paths:
       - "app.py"
+      - "launcher.py"
+      - "enhanced_app.py"
+      - "robust_resolver.py"
+      - "resolver_v12.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -44,7 +52,20 @@ jobs:
           pip install -r requirements.txt pyinstaller
 
       - name: Run parser tests
-        run: python -m unittest discover -s tests -v
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath test_output.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload diagnostic files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Churchill-v1.2-diagnostics
+          path: |
+            test_output.log
+            churchill_v12_report.json
+          if-no-files-found: warn
 
       - name: Build EXE
         run: pyinstaller --noconfirm --clean paper_downloader.spec
