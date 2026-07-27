@@ -1,18 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_all
+
+playwright_datas, playwright_binaries, playwright_hiddenimports = collect_all("playwright")
+
 analysis = Analysis(
     ["launcher.py"],
     pathex=[],
-    binaries=[],
-    datas=[],
+    binaries=playwright_binaries,
+    datas=playwright_datas,
     hiddenimports=[
         "robust_resolver",
         "resolver_v12",
         "resolver_v13",
         "resolver_v14",
+        "resolver_v15",
+        "publisher_adapters",
+        "browser_publisher_engine",
         "enhanced_app",
         "pypdf",
-    ],
+    ] + playwright_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

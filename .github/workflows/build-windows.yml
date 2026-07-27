@@ -12,6 +12,9 @@ on:
       - "resolver_v12.py"
       - "resolver_v13.py"
       - "resolver_v14.py"
+      - "resolver_v15.py"
+      - "publisher_adapters.py"
+      - "browser_publisher_engine.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -26,6 +29,9 @@ on:
       - "resolver_v12.py"
       - "resolver_v13.py"
       - "resolver_v14.py"
+      - "resolver_v15.py"
+      - "publisher_adapters.py"
+      - "browser_publisher_engine.py"
       - "requirements.txt"
       - "paper_downloader.spec"
       - "tests/**"
@@ -39,7 +45,7 @@ permissions:
 jobs:
   test-and-build:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
